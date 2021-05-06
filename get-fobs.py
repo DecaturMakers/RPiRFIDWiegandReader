@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
-# this is the latest version as of Sunday, April 3, 2021
 import os
 import datetime
 from typing import Any, Dict, List, Generator, Tuple
 import sys
 
 import requests
-# to do: make cronjob to establish API key value regularly from outside the program
+
 API_KEY = os.getenv("NEONCRM_API_KEY")
 ORG_ID = "decaturmakers"
 AUTH = (ORG_ID, API_KEY)
