@@ -75,7 +75,6 @@ for line in io.TextIOWrapper(proc.stdout, encoding="utf-8"):
     else:
         print(f"Fob {fob} is unauthorized!")
     if authorized_fobs != new_authorized_fobs:
-        print(f"{new_authorized_fobs=}")
         with open(FOB_CACHE_PATH, "w") as authorized_fobs_fp:
             json.dump(list(new_authorized_fobs), authorized_fobs_fp)
     authorized_fobs = new_authorized_fobs
