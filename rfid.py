@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 
+import importlib.resources as package_resources
 import io
 import json
-import subprocess
 import os
-import time
+import subprocess
 import sys
+import time
 
 
-# from gpiozero import LED
+try:
+    from gpiozero import LED
+except ImportError:
+    print("Error importing gpiozero! Using stub.", file=sys.stderr)
+    LED = None
 
 from dotenv import load_dotenv
 import requests
@@ -23,19 +28,20 @@ FOB_CACHE_PATH = "authorized-fob-cache.json"
 headers = {"Authorization": f"Bearer {GLUE_TOKEN}"}
 
 
-class DummyLED:
-    def __init__(self, pin):
-        pass
+if LED is None:
+    class LED:
+        def __init__(self, pin):
+            pass
 
-    def on(self):
-        pass
+        def on(self):
+            pass
 
-    def off(self):
-        pass
+        def off(self):
+            pass
 
 
-# output = LED(22)
-output = DummyLED(22)
+output = LED(22)
+# output = DummyLED(22)
 output.off()
 
 proc = subprocess.Popen(["./wiegand_rpi"], stdout=subprocess.PIPE)
@@ -44,10 +50,10 @@ try:
     with open(FOB_CACHE_PATH) as authorized_fobs_fp:
         authorized_fobs = frozenset(json.load(authorized_fobs_fp))
 except (FileNotFoundError, json.JSONDecodeError):
-    authorized_fobs = []
+    authorized_fobs = frozenset()
 
 for line in io.TextIOWrapper(proc.stdout, encoding="utf-8"):
-    fob = line.rstrip()
+    fob = line.strip().zfill(10)
     try:
         auth_res = requests.get(
             f"{GLUE_ENDPOINT}/rfid/auth",
