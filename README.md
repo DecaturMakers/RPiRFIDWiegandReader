@@ -17,6 +17,41 @@ The Raspberry Pi Zero W receives Weigand data (data0 and data 1) stepped down vi
 
 When a fob is passed near the reader, wiegand_rpi interprets the 26 bit fob data and sends the digital "full code" of the fob, a 10-digit number with three leading zeroes, to stdout.
 
-door.sh is a script that runs as a service that will start at boot and runs wiegand_rpi, waiting for this 10-digit number. It searches the file rfidtags.txt for the number, and if found, sends 3V over GPIO pin 22 to the control input on the custom circuit board described above - this closes the relay sending 24V to the door motor. The signal stays on for 5 sec (and is also sent to an LED.)
+# `rfidclient`
 
-get-fobs.py is scheduled (via crontab) to run at 5A each day and calls NeonCRM (our membership payment, donation, etc. CRM provider) via its API and gets a list of members whose membership expiration date is after the date 7 years before the current timestamp.
+`rfidclient` is a daemon written in Python that will start on boot and runs `wiegand_rpi`, waiting for this 10-digit number. It makes an HTTPS request to our "glue" server to check whether the fob number is valid, and if it is, sends 3V over GPIO pin 22 to the control input on the custom circuit board described above -- this closes the relay sending 24V to the door motor. The signal stays on for 5 sec.
+
+The code for the back-end "glue" server is at https://github.com/DecaturMakers/glue/ (currently a private repo).
+
+## Compiling `wiegand_rpi`
+
+A compiled `wiegand_rpi` binary is included in this repo at `rfidclient/wiegand_rpi`. Here's how to compile a new one if changes need to be made. It's probably easiest to do this on a physical Raspberry Pi.
+
+Download and install wiringpi (deprecated, not available in repos):
+
+```
+wget https://project-downloads.drogon.net/wiringpi-latest.deb -O /tmp/wiringpi-latest.deb
+dpkg -i /tmp/wiringpi-latest.deb
+```
+
+Compile:
+
+```
+gcc wiegand_rpi.c -lwiringPi -lpthread -lrt  -Wall -o rfidclient/wiegand_rpi -O
+```
+
+## Installing
+
+Run the install script:
+
+```
+sudo make install
+```
+
+Then, fill out `/etc/default/rfidclient` with the https:// address of the glue server and an authorization token.
+
+The installation script will `enable` the `rfidclient` service so it starts at boot. To start the service immediately, run:
+
+```
+sudo systemctl start rfidclient.service
+```

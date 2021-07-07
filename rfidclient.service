@@ -1,0 +1,16 @@
+[Unit]
+Description=RFID Daemon
+Requires=multi-user.target network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+ExecStart=/usr/local/bin/rfidclient
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+
