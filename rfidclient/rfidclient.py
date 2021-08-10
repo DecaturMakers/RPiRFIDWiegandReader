@@ -3,6 +3,7 @@
 import importlib.resources as package_resources
 import io
 import json
+import logging
 import os
 import subprocess
 import sys
@@ -10,6 +11,8 @@ import time
 
 from dotenv import load_dotenv
 import requests
+
+logging.basicConfig(level=logging.DEBUG)
 
 try:
     import gpiozero
@@ -41,7 +44,6 @@ headers = {"Authorization": f"Bearer {GLUE_TOKEN}"}
 
 def main():
     with package_resources.path("rfidclient", "wiegand_rpi") as proc_path:
-        print("proc_path", proc_path)
         proc = subprocess.Popen([proc_path], stdout=subprocess.PIPE)
 
     try:
@@ -63,21 +65,16 @@ def main():
             if auth_res.json().get("authorized_fobs", None) is None:
                 raise ValueError("Server doesn't know authorized fobs!")
             new_authorized_fobs = frozenset(auth_res.json()["authorized_fobs"])
-        except (
-            requests.HTTPError,
-            requests.exceptions.ReadTimeout,
-            KeyError,
-            ValueError,
-        ) as error:
-            print(error, file=sys.stderr)
+        except Exception as e:
+            logging.exception("Couldn't get authorized fobs.")
             new_authorized_fobs = authorized_fobs
         if fob in new_authorized_fobs:
-            print(f"Unlocking for fob {fob}")
+            logging.info(f"Unlocking for fob {fob}")
             output.on()
             time.sleep(5)
             output.off()
         else:
-            print(f"Fob {fob} is unauthorized!")
+            logging.info(f"Fob {fob} is unauthorized!")
         if authorized_fobs != new_authorized_fobs:
             with open(FOB_CACHE_PATH, "w") as authorized_fobs_fp:
                 json.dump(list(new_authorized_fobs), authorized_fobs_fp)
