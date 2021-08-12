@@ -11,7 +11,7 @@ setup(
     license="Copyright",
     author="Evan Goode",
     author_email="mail@evangoo.de",
-    install_requires=["gpiozero", "python-dotenv", "requests"],
+    install_requires=["gpiozero", "python-dotenv", "requests", "timeout-decorator"],
     package_data={ "": ["wiegand_rpi"],},
     include_package_data=True,
     packages=find_packages(),
