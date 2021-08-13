@@ -109,6 +109,8 @@ def main():
     with package_resources.path("rfidclient", "wiegand_rpi") as proc_path:
         proc = subprocess.Popen([proc_path], stdout=subprocess.PIPE)
 
+    logging.info("Listening for fobs...")
+
     for line in io.TextIOWrapper(proc.stdout, encoding="utf-8"):
         scanned_fob = line.strip().zfill(10)
         with new_scanned_fob:

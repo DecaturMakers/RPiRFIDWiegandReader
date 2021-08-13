@@ -73,7 +73,6 @@ void wiegand_timeout() {
     if (options.debug)
         fprintf(stderr, "wiegand_timeout()\n");
     wiegand_sequence_reset();
-    show_code();
 }
 
 void show_code() {
@@ -147,11 +146,14 @@ void add_bit_w26(int bit) {
                 fprintf(stderr, "Incorrect even parity bit (leftmost)\n");
             }
         }
-        else if (!(parity1 % 2) != wds.p1) {
+        else if ((!(parity1 % 2)) != wds.p1) {
             wds.code_valid = 0;
             if (options.debug) {
                 fprintf(stderr, "Incorrect odd parity bit (rightmost)\n");
             }
+        }
+        if (wds.code_valid) {
+            show_code();
         }
 
     }
