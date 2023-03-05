@@ -44,6 +44,7 @@ load_dotenv(dotenv_path="/etc/default/rfidclient")
 
 GLUE_ENDPOINT = os.getenv("GLUE_ENDPOINT")
 GLUE_TOKEN = os.getenv("GLUE_TOKEN")
+ZONE = os.getenv("ZONE")
 
 FOB_CACHE_PATH = os.path.expanduser("~/.cache/rfidclient/authorized-fob-cache.json")
 os.makedirs(os.path.dirname(FOB_CACHE_PATH), exist_ok=True)
@@ -64,7 +65,7 @@ scanned_fob: Optional[str] = None
 def get_auth_res(fob):
     return requests.get(
         f"{GLUE_ENDPOINT}/rfid/auth",
-        params={"fob": fob},
+        params={"fob": fob, "zone": ZONE},
         headers=headers,
     )
 
