@@ -9,6 +9,7 @@ import os
 import subprocess
 import sys
 import time
+import platform
 from typing import NoReturn, Optional
 
 import timeout_decorator
@@ -107,7 +108,10 @@ threading.Thread(target=scan_worker, daemon=True).start()
 def main():
     global scanned_fob
 
-    with package_resources.path("rfidclient", "wiegand_rpi") as proc_path:
+    bin_name = "wiegand_rpi"
+    if platform.machine() == "aarch64":
+        bin_name = "wiegand_rpi_arm64"
+    with package_resources.path("rfidclient", bin_name) as proc_path:
         proc = subprocess.Popen([proc_path], stdout=subprocess.PIPE)
 
     logging.info("Listening for fobs...")

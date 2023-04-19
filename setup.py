@@ -12,7 +12,7 @@ setup(
     author="Evan Goode",
     author_email="mail@evangoo.de",
     install_requires=["gpiozero", "python-dotenv", "requests", "timeout-decorator"],
-    package_data={ "": ["wiegand_rpi"],},
+    package_data={ "": ["wiegand_rpi", "wiegand_rpi_arm64"],},
     include_package_data=True,
     packages=find_packages(),
     entry_points={"console_scripts": ["rfidclient=rfidclient.rfidclient:main"]},
