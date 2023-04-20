@@ -27,12 +27,7 @@ The code for the back-end "glue" server is at https://github.com/DecaturMakers/g
 
 A compiled `wiegand_rpi` binary is included in this repo at `rfidclient/wiegand_rpi`. Here's how to compile a new one if changes need to be made. It's probably easiest to do this on a physical Raspberry Pi.
 
-Download and install wiringpi (deprecated, not available in repos):
-
-```
-wget https://project-downloads.drogon.net/wiringpi-latest.deb -O /tmp/wiringpi-latest.deb
-dpkg -i /tmp/wiringpi-latest.deb
-```
+Download and install the wiringpi ``.deb`` from the latest release at https://github.com/WiringPi/WiringPi/releases
 
 Compile:
 
@@ -41,6 +36,8 @@ gcc wiegand_rpi.c -lwiringPi -lpthread -lrt  -Wall -o rfidclient/wiegand_rpi -O
 ```
 
 ## Installing
+
+If you did not compile on the same machine, first download the ``.deb`` package from the latest release at https://github.com/WiringPi/WiringPi/releases and install it.
 
 Run the install script:
 
