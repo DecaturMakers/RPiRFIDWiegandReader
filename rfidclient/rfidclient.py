@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 import requests
 
 AUTH_TIMEOUT = 2
+DOOR_OPEN_SECONDS = 10
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -90,7 +91,7 @@ def scan_worker() -> NoReturn:
             if fob in new_authorized_fobs:
                 logging.info("Unlocking for fob %s", fob)
                 output.on()
-                time.sleep(5)
+                time.sleep(DOOR_OPEN_SECONDS)
                 output.off()
             else:
                 logging.info("Fob %s is unauthorized!", fob)
