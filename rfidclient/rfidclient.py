@@ -21,10 +21,21 @@ DOOR_OPEN_SECONDS = 10
 
 logging.basicConfig(level=logging.DEBUG)
 
+load_dotenv(dotenv_path="/etc/default/rfidclient")
+
+GLUE_ENDPOINT: str = os.getenv("GLUE_ENDPOINT")
+GLUE_TOKEN: str = os.getenv("GLUE_TOKEN")
+ZONE: str = os.getenv("ZONE")
+CONTACT_PIN: int = int(os.getenv("CONTACT_PIN", "0"))
+CONTACT_TIMEOUT_MS: int = int(os.getenv("CONTACT_TIMEOUT_MS", "0"))
+CONTACT_PIN_NORMALLY_OPEN: int = int(os.getenv("CONTACT_PIN_NORMALLY_OPEN", "0"))
+
 try:
     import gpiozero
 
     output = gpiozero.LED(22)
+    if CONTACT_PIN > 0:
+        door_contact = gpiozero.Button(CONTACT_PIN)
 except (ImportError, gpiozero.exc.BadPinFactory):
     print("gpiozero error! Using stub.", file=sys.stderr)
 
@@ -39,14 +50,9 @@ except (ImportError, gpiozero.exc.BadPinFactory):
             pass
 
     output = DummyLED(22)
+    door_contact = DummyLED(CONTACT_PIN)
 
 output.off()
-
-load_dotenv(dotenv_path="/etc/default/rfidclient")
-
-GLUE_ENDPOINT = os.getenv("GLUE_ENDPOINT")
-GLUE_TOKEN = os.getenv("GLUE_TOKEN")
-ZONE = os.getenv("ZONE")
 
 FOB_CACHE_PATH = os.path.expanduser("~/.cache/rfidclient/authorized-fob-cache.json")
 os.makedirs(os.path.dirname(FOB_CACHE_PATH), exist_ok=True)
@@ -103,7 +109,19 @@ def scan_worker() -> NoReturn:
             logging.exception("")
 
 
+def door_opened() -> NoReturn:
+    logging.info("Door contact / latch sensor opened")
+    if output.state and CONTACT_TIMEOUT_MS:
+        time.sleep(CONTACT_TIMEOUT_MS)
+        output.off()
+
+
 threading.Thread(target=scan_worker, daemon=True).start()
+
+if CONTACT_PIN_NORMALLY_OPEN == 1:
+    door_contact.when_pressed = door_opened
+else:
+    door_contact.when_released = door_opened
 
 
 def main():
