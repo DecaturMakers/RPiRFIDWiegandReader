@@ -11,6 +11,7 @@ import sys
 import time
 import platform
 from typing import NoReturn, Optional
+from signal import pause
 
 import timeout_decorator
 from dotenv import load_dotenv
@@ -28,27 +29,29 @@ GLUE_TOKEN: str = os.getenv("GLUE_TOKEN")
 ZONE: str = os.getenv("ZONE")
 CONTACT_PIN: int = int(os.getenv("CONTACT_PIN", "0"))
 CONTACT_TIMEOUT_MS: int = int(os.getenv("CONTACT_TIMEOUT_MS", "0"))
-CONTACT_PIN_NORMALLY_OPEN: int = int(os.getenv("CONTACT_PIN_NORMALLY_OPEN", "0"))
+# NOTE: Contact pin should be normally open (open when door is closed, closed when door is open)
+
+class DummyLED:
+    def __init__(self, pin):
+        pass
+
+    def on(self):
+        pass
+
+    def off(self):
+        pass
+
 
 try:
     import gpiozero
-
     output = gpiozero.LED(22)
     if CONTACT_PIN > 0:
-        door_contact = gpiozero.Button(CONTACT_PIN)
+        door_contact = gpiozero.Button(CONTACT_PIN, pull_up=True)
+        logging.debug('Reading door contact on pin %s', CONTACT_PIN)
+    else:
+        door_contact = DummyLED(CONTACT_PIN)
 except (ImportError, gpiozero.exc.BadPinFactory):
     print("gpiozero error! Using stub.", file=sys.stderr)
-
-    class DummyLED:
-        def __init__(self, pin):
-            pass
-
-        def on(self):
-            pass
-
-        def off(self):
-            pass
-
     output = DummyLED(22)
     door_contact = DummyLED(CONTACT_PIN)
 
@@ -98,6 +101,7 @@ def scan_worker() -> NoReturn:
                 logging.info("Unlocking for fob %s", fob)
                 output.on()
                 time.sleep(DOOR_OPEN_SECONDS)
+                logging.debug('Relocking door')
                 output.off()
             else:
                 logging.info("Fob %s is unauthorized!", fob)
@@ -120,19 +124,17 @@ def door_closed() -> NoReturn:
     logging.info("Door contact / latch sensor closed")
 
 
-threading.Thread(target=scan_worker, daemon=True).start()
-
-if CONTACT_PIN_NORMALLY_OPEN == 1:
+def door_contact_handler() -> NoReturn:
     door_contact.when_pressed = door_opened
     door_contact.when_released = door_closed
-else:
-    door_contact.when_released = door_opened
-    door_contact.when_pressed = door_closed
+    pause()
 
-"""
-use a SHM list of [Boolean is_open, Float last_opened_time, Float last_closed_time]
-then the monitoring process can read that
-"""
+
+threading.Thread(target=scan_worker, daemon=True).start()
+
+if CONTACT_PIN > 0:
+    threading.Thread(target=door_contact_handler, daemon=True).start()
+
 
 def main():
     global scanned_fob
