@@ -12,6 +12,7 @@ import time
 import platform
 from typing import NoReturn, Optional
 from signal import pause
+from multiprocessing.managers import SharedMemoryManager
 
 import timeout_decorator
 from dotenv import load_dotenv
@@ -20,7 +21,10 @@ import requests
 AUTH_TIMEOUT = 2
 DOOR_OPEN_SECONDS = 10
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s %(levelname)s:%(name)s:%(message)s'
+)
 
 load_dotenv(dotenv_path="/etc/default/rfidclient")
 
@@ -29,7 +33,9 @@ GLUE_TOKEN: str = os.getenv("GLUE_TOKEN")
 ZONE: str = os.getenv("ZONE")
 CONTACT_PIN: int = int(os.getenv("CONTACT_PIN", "0"))
 CONTACT_TIMEOUT_MS: int = int(os.getenv("CONTACT_TIMEOUT_MS", "0"))
-# NOTE: Contact pin should be normally open (open when door is closed, closed when door is open)
+CONTACT_SLEEP_TIME = CONTACT_TIMEOUT_MS / 1000.0
+# NOTE: Contact pin should be normally closed (i.e. when door is closed, contact is closed, pin value is 1)
+
 
 class DummyLED:
     def __init__(self, pin):
@@ -46,7 +52,9 @@ try:
     import gpiozero
     output = gpiozero.LED(22)
     if CONTACT_PIN > 0:
-        door_contact = gpiozero.Button(CONTACT_PIN, pull_up=True)
+        door_contact = gpiozero.Button(
+            CONTACT_PIN, pull_up=True, bounce_time=0.1
+        )
         logging.debug('Reading door contact on pin %s', CONTACT_PIN)
     else:
         door_contact = DummyLED(CONTACT_PIN)
@@ -103,6 +111,7 @@ def scan_worker() -> NoReturn:
                 time.sleep(DOOR_OPEN_SECONDS)
                 logging.debug('Relocking door')
                 output.off()
+                logging.debug('Door relocked')
             else:
                 logging.info("Fob %s is unauthorized!", fob)
             if authorized_fobs != new_authorized_fobs:
@@ -115,9 +124,11 @@ def scan_worker() -> NoReturn:
 
 def door_opened() -> NoReturn:
     logging.info("Door contact / latch sensor opened")
-    if output.state and CONTACT_TIMEOUT_MS:
-        time.sleep(CONTACT_TIMEOUT_MS)
+    if output.value and CONTACT_TIMEOUT_MS:
+        time.sleep(CONTACT_SLEEP_TIME)
+        logging.debug('Relocking door (latch sensor')
         output.off()
+        logging.debug('Door relocked (latch sensor)')
 
 
 def door_closed() -> NoReturn:
@@ -125,8 +136,12 @@ def door_closed() -> NoReturn:
 
 
 def door_contact_handler() -> NoReturn:
-    door_contact.when_pressed = door_opened
-    door_contact.when_released = door_closed
+    logging.debug(
+        "Starting door_contact_handler thread; door_contact value is %s",
+        door_contact.value
+    )
+    door_contact.when_pressed = door_closed
+    door_contact.when_released = door_opened
     pause()
 
 
