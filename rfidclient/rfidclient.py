@@ -116,13 +116,23 @@ def door_opened() -> NoReturn:
         output.off()
 
 
+def door_closed() -> NoReturn:
+    logging.info("Door contact / latch sensor closed")
+
+
 threading.Thread(target=scan_worker, daemon=True).start()
 
 if CONTACT_PIN_NORMALLY_OPEN == 1:
     door_contact.when_pressed = door_opened
+    door_contact.when_released = door_closed
 else:
     door_contact.when_released = door_opened
+    door_contact.when_pressed = door_closed
 
+"""
+use a SHM list of [Boolean is_open, Float last_opened_time, Float last_closed_time]
+then the monitoring process can read that
+"""
 
 def main():
     global scanned_fob
