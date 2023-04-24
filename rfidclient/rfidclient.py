@@ -5,6 +5,7 @@ import importlib.resources as package_resources
 import io
 import json
 import logging
+from logging.handlers import SysLogHandler
 import os
 import subprocess
 import sys
@@ -23,7 +24,11 @@ DOOR_OPEN_SECONDS = 10
 
 logging.basicConfig(
     level=logging.DEBUG,
-    format='%(asctime)s %(levelname)s:%(name)s:%(message)s'
+    format='%(asctime)s %(levelname)s:%(name)s:%(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        SysLogHandler(address=('10.1.1.7', 5514))
+    ]
 )
 
 load_dotenv(dotenv_path="/etc/default/rfidclient")
