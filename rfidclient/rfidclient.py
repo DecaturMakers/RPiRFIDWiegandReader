@@ -150,10 +150,18 @@ def door_contact_handler() -> NoReturn:
     pause()
 
 
+def uptime_timer() -> NoReturn:
+    start_time = time.time()
+    while True:
+        logging.info('Process uptime: %.3f seconds', time.time() - start_time)
+        time.sleep(300)
+
+
 threading.Thread(target=scan_worker, daemon=True).start()
 
 if CONTACT_PIN > 0:
     threading.Thread(target=door_contact_handler, daemon=True).start()
+    threading.Thread(target=uptime_timer, daemon=True).start()
 
 
 def main():
