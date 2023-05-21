@@ -13,11 +13,12 @@ import time
 import platform
 from typing import NoReturn, Optional
 from signal import pause
-from multiprocessing.managers import SharedMemoryManager
+from multiprocessing.shared_memory import SharedMemory
 
 import timeout_decorator
 from dotenv import load_dotenv
 import requests
+from doorstate import DoorState
 
 AUTH_TIMEOUT = 2
 DOOR_OPEN_SECONDS = 10
@@ -73,6 +74,11 @@ output.off()
 FOB_CACHE_PATH = os.path.expanduser("~/.cache/rfidclient/authorized-fob-cache.json")
 os.makedirs(os.path.dirname(FOB_CACHE_PATH), exist_ok=True)
 
+door_state: DoorState = DoorState()
+shm: SharedMemory = SharedMemory(
+    name='doorstateshm', create=True, size=DoorState.STRUCT_SIZE
+)
+
 headers = {"Authorization": f"Bearer {GLUE_TOKEN}"}
 
 try:
@@ -105,6 +111,7 @@ def scan_worker() -> NoReturn:
                 auth_res = get_auth_res(fob)
                 auth_res.raise_for_status()
                 if auth_res.json().get("authorized_fobs", None) is None:
+                    logging.critical("Server doesn't know authorized fobs!")
                     raise ValueError("Server doesn't know authorized fobs!")
                 new_authorized_fobs = frozenset(auth_res.json()["authorized_fobs"])
             except Exception as e:
@@ -112,6 +119,7 @@ def scan_worker() -> NoReturn:
                 new_authorized_fobs = authorized_fobs
             if fob in new_authorized_fobs:
                 logging.info("Unlocking for fob %s", fob)
+                door_state.set_scan_authorized(shm)
                 output.on()
                 time.sleep(DOOR_OPEN_SECONDS)
                 logging.debug('Relocking door')
@@ -119,6 +127,7 @@ def scan_worker() -> NoReturn:
                 logging.debug('Door relocked')
             else:
                 logging.info("Fob %s is unauthorized!", fob)
+                door_state.set_scan_unauthorized(shm)
             if authorized_fobs != new_authorized_fobs:
                 with open(FOB_CACHE_PATH, "w") as authorized_fobs_fp:
                     json.dump(list(new_authorized_fobs), authorized_fobs_fp)
@@ -129,6 +138,7 @@ def scan_worker() -> NoReturn:
 
 def door_opened() -> NoReturn:
     logging.info("Door contact / latch sensor opened")
+    door_state.set_door_open(shm)
     if output.value and CONTACT_TIMEOUT_MS:
         time.sleep(CONTACT_SLEEP_TIME)
         logging.debug('Relocking door (latch sensor')
@@ -137,6 +147,7 @@ def door_opened() -> NoReturn:
 
 
 def door_closed() -> NoReturn:
+    door_state.set_door_closed(shm)
     logging.info("Door contact / latch sensor closed")
 
 
