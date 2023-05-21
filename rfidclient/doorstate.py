@@ -17,6 +17,34 @@ class DoorState:
         self._num_authorized: int = 0
         self._num_unauthorized: int = 0
 
+    @property
+    def process_uptime_seconds(self) -> float:
+        return time() - self._process_start_time
+
+    @property
+    def door_is_open(self) -> int:
+        return self._door_is_open
+
+    @property
+    def seconds_since_opened(self) -> float:
+        if self._door_open_time == -1:
+            return -1
+        return time() - self._door_open_time
+
+    @property
+    def seconds_since_closed(self) -> float:
+        if self._door_close_time == -1:
+            return -1
+        return time() - self._door_close_time
+
+    @property
+    def unauthorized_scans(self) -> int:
+        return self._num_unauthorized
+
+    @property
+    def authorized_scans(self) -> int:
+        return self._num_authorized
+
     def set_door_open(self, shm: SharedMemory):
         self._door_is_open = 1
         self._door_open_time = time()

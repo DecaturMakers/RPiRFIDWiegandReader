@@ -1,0 +1,16 @@
+[Unit]
+Description=RFID Client Prometheus Exporter
+Requires=multi-user.target network-online.target rfidclient.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+ExecStart=/usr/local/bin/rfid-prometheus
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+
