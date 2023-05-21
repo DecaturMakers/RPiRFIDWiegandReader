@@ -171,7 +171,7 @@ def set_log_level_format(level: int, format: str):
     logger.setLevel(level)
 
 
-if __name__ == "__main__":
+def main():
     args = parse_args(sys.argv[1:])
     if args.verbose > 1:
         set_log_debug()
@@ -180,3 +180,7 @@ if __name__ == "__main__":
     REGISTRY.register(RfidClientCollector())
     logger.info('Starting HTTP server on port %d', args.port)
     serve_exporter(args.port)
+
+
+if __name__ == "__main__":
+    main()
