@@ -15,7 +15,7 @@ from wsgiref.simple_server import make_server, WSGIServer
 from prometheus_client.core import REGISTRY, GaugeMetricFamily, Metric
 from prometheus_client.exposition import make_wsgi_app, _SilentHandler
 from prometheus_client.samples import Sample
-from doorstate import DoorState
+from rfidclient.doorstate import DoorState
 
 FORMAT = "[%(asctime)s %(levelname)s] %(message)s"
 logging.basicConfig(level=logging.WARNING, format=FORMAT)
