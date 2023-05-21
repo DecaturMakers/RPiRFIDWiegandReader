@@ -164,6 +164,10 @@ def door_contact_handler() -> NoReturn:
 threading.Thread(target=scan_worker, daemon=True).start()
 
 if CONTACT_PIN > 0:
+    if door_contact.is_pressed:
+        door_state.set_door_closed(shm)
+    else:
+        door_state.set_door_open(shm)
     threading.Thread(target=door_contact_handler, daemon=True).start()
 
 
