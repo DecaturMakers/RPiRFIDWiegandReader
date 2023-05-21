@@ -18,7 +18,7 @@ from multiprocessing.shared_memory import SharedMemory
 import timeout_decorator
 from dotenv import load_dotenv
 import requests
-from doorstate import DoorState
+from rfidclient.doorstate import DoorState
 
 AUTH_TIMEOUT = 2
 DOOR_OPEN_SECONDS = 10
