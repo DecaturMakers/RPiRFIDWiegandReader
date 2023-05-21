@@ -8,6 +8,7 @@ import socket
 from typing import Generator, Dict, Optional
 import atexit
 from time import time
+from multiprocessing.shared_memory import SharedMemory
 
 from dotenv import load_dotenv
 import requests
