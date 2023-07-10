@@ -22,6 +22,12 @@ class DoorState:
         return time() - self._process_start_time
 
     @property
+    def door_open_seconds(self) -> float:
+        if self._door_is_open == 1:
+            return self.seconds_since_opened
+        return 0
+
+    @property
     def door_is_open(self) -> int:
         return self._door_is_open
 

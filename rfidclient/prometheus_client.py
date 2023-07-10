@@ -68,6 +68,12 @@ class RfidClientCollector:
             value=ds.door_is_open, labels={'zone': ZONE}, unit=''
         )
         yield LabeledGaugeMetricFamily(
+            'rfidclient_door_open_seconds',
+            'rfidclient how long the door has been open',
+            value=ds.door_open_seconds, labels={'zone': ZONE},
+            unit='seconds'
+        )
+        yield LabeledGaugeMetricFamily(
             'rfidclient_process_uptime',
             'rfidclient process uptime in seconds',
             value=ds.process_uptime_seconds, labels={'zone': ZONE},
