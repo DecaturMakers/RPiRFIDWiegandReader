@@ -8,6 +8,7 @@ import socket
 from typing import Generator, Dict, Optional
 import atexit
 from time import time
+from multiprocessing.shared_memory import SharedMemory
 
 from dotenv import load_dotenv
 import requests
@@ -15,7 +16,7 @@ from wsgiref.simple_server import make_server, WSGIServer
 from prometheus_client.core import REGISTRY, GaugeMetricFamily, Metric
 from prometheus_client.exposition import make_wsgi_app, _SilentHandler
 from prometheus_client.samples import Sample
-from doorstate import DoorState
+from rfidclient.doorstate import DoorState
 
 FORMAT = "[%(asctime)s %(levelname)s] %(message)s"
 logging.basicConfig(level=logging.WARNING, format=FORMAT)
@@ -177,7 +178,7 @@ def set_log_level_format(level: int, format: str):
     logger.setLevel(level)
 
 
-if __name__ == "__main__":
+def main():
     args = parse_args(sys.argv[1:])
     if args.verbose > 1:
         set_log_debug()
@@ -186,3 +187,7 @@ if __name__ == "__main__":
     REGISTRY.register(RfidClientCollector())
     logger.info('Starting HTTP server on port %d', args.port)
     serve_exporter(args.port)
+
+
+if __name__ == "__main__":
+    main()

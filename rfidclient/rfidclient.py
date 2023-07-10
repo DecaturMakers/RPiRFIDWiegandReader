@@ -18,7 +18,7 @@ from multiprocessing.shared_memory import SharedMemory
 import timeout_decorator
 from dotenv import load_dotenv
 import requests
-from doorstate import DoorState
+from rfidclient.doorstate import DoorState
 
 AUTH_TIMEOUT = 2
 DOOR_OPEN_SECONDS = 10
@@ -114,6 +114,9 @@ def scan_worker() -> NoReturn:
                     logging.critical("Server doesn't know authorized fobs!")
                     raise ValueError("Server doesn't know authorized fobs!")
                 new_authorized_fobs = frozenset(auth_res.json()["authorized_fobs"])
+                if authorized_fobs != new_authorized_fobs:
+                    with open(FOB_CACHE_PATH, "w") as authorized_fobs_fp:
+                        json.dump(list(new_authorized_fobs), authorized_fobs_fp)
             except Exception as e:
                 logging.exception("Couldn't get authorized fobs.")
                 new_authorized_fobs = authorized_fobs
@@ -128,9 +131,6 @@ def scan_worker() -> NoReturn:
             else:
                 logging.info("Fob %s is unauthorized!", fob)
                 door_state.set_scan_unauthorized(shm)
-            if authorized_fobs != new_authorized_fobs:
-                with open(FOB_CACHE_PATH, "w") as authorized_fobs_fp:
-                    json.dump(list(new_authorized_fobs), authorized_fobs_fp)
             authorized_fobs = new_authorized_fobs
         except Exception as e:
             logging.exception("")
@@ -164,6 +164,10 @@ def door_contact_handler() -> NoReturn:
 threading.Thread(target=scan_worker, daemon=True).start()
 
 if CONTACT_PIN > 0:
+    if door_contact.is_pressed:
+        door_state.set_door_closed(shm)
+    else:
+        door_state.set_door_open(shm)
     threading.Thread(target=door_contact_handler, daemon=True).start()
 
 
