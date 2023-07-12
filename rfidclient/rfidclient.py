@@ -38,6 +38,7 @@ GLUE_ENDPOINT: str = os.getenv("GLUE_ENDPOINT")
 GLUE_TOKEN: str = os.getenv("GLUE_TOKEN")
 ZONE: str = os.getenv("ZONE")
 CONTACT_PIN: int = int(os.getenv("CONTACT_PIN", "0"))
+CONTACT_PIN_NORMAL_STATE: int = int(os.getenv("CONTACT_PIN_NORMAL_STATE", "0")) # 0 = normally open, 1 = normally closed
 CONTACT_TIMEOUT_MS: int = int(os.getenv("CONTACT_TIMEOUT_MS", "0"))
 CONTACT_SLEEP_TIME = CONTACT_TIMEOUT_MS / 1000.0
 # NOTE: Contact pin should be normally closed (i.e. when door is closed, contact is closed, pin value is 1)
@@ -156,18 +157,28 @@ def door_contact_handler() -> NoReturn:
         "Starting door_contact_handler thread; door_contact value is %s",
         door_contact.value
     )
-    door_contact.when_pressed = door_closed
-    door_contact.when_released = door_opened
+    if CONTACT_PIN_NORMAL_STATE == 0:
+        door_contact.when_pressed = door_closed
+        door_contact.when_released = door_opened
+    else:
+        door_contact.when_pressed = door_opened
+        door_contact.when_released = door_closed
     pause()
 
 
 threading.Thread(target=scan_worker, daemon=True).start()
 
 if CONTACT_PIN > 0:
-    if door_contact.is_pressed:
-        door_state.set_door_closed(shm)
+    if CONTACT_PIN_NORMAL_STATE == 0:
+        if door_contact.is_pressed:
+            door_state.set_door_closed(shm)
+        else:
+            door_state.set_door_open(shm)
     else:
-        door_state.set_door_open(shm)
+        if door_contact.is_pressed:
+            door_state.set_door_open(shm)
+        else:
+            door_state.set_door_closed(shm)
     threading.Thread(target=door_contact_handler, daemon=True).start()
 
 
