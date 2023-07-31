@@ -11,9 +11,19 @@ setup(
     license="Copyright",
     author="Evan Goode",
     author_email="mail@evangoo.de",
-    install_requires=["gpiozero", "python-dotenv", "requests", "timeout-decorator"],
-    package_data={ "": ["wiegand_rpi", "wiegand_rpi_arm64"],},
+    install_requires=[
+        "gpiozero", "python-dotenv", "requests", "timeout-decorator",
+        "prometheus-client"
+    ],
+    package_data={
+        "": ["wiegand_rpi", "wiegand_rpi_arm64"],
+    },
     include_package_data=True,
     packages=find_packages(),
-    entry_points={"console_scripts": ["rfidclient=rfidclient.rfidclient:main"]},
+    entry_points={
+        "console_scripts": [
+            "rfidclient=rfidclient.rfidclient:main",
+            "rfid-prometheus=rfidclient.prometheus_client:main",
+        ]
+    },
 )

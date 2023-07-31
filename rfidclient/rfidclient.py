@@ -11,45 +11,68 @@ import sys
 import time
 import platform
 from typing import NoReturn, Optional
+from signal import pause
+from multiprocessing.shared_memory import SharedMemory
 
 import timeout_decorator
 from dotenv import load_dotenv
 import requests
+from rfidclient.doorstate import DoorState
 
 AUTH_TIMEOUT = 2
 DOOR_OPEN_SECONDS = 10
 
-logging.basicConfig(level=logging.DEBUG)
-
-try:
-    import gpiozero
-
-    output = gpiozero.LED(22)
-except (ImportError, gpiozero.exc.BadPinFactory):
-    print("gpiozero error! Using stub.", file=sys.stderr)
-
-    class DummyLED:
-        def __init__(self, pin):
-            pass
-
-        def on(self):
-            pass
-
-        def off(self):
-            pass
-
-    output = DummyLED(22)
-
-output.off()
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s %(levelname)s:%(name)s:%(message)s'
+)
 
 load_dotenv(dotenv_path="/etc/default/rfidclient")
 
-GLUE_ENDPOINT = os.getenv("GLUE_ENDPOINT")
-GLUE_TOKEN = os.getenv("GLUE_TOKEN")
-ZONE = os.getenv("ZONE")
+GLUE_ENDPOINT: str = os.getenv("GLUE_ENDPOINT")
+GLUE_TOKEN: str = os.getenv("GLUE_TOKEN")
+ZONE: str = os.getenv("ZONE")
+CONTACT_PIN: int = int(os.getenv("CONTACT_PIN", "0"))
+CONTACT_TIMEOUT_MS: int = int(os.getenv("CONTACT_TIMEOUT_MS", "0"))
+CONTACT_SLEEP_TIME = CONTACT_TIMEOUT_MS / 1000.0
+# NOTE: Contact pin should be normally closed (i.e. when door is closed, contact is closed, pin value is 1)
+
+
+class DummyLED:
+    def __init__(self, pin):
+        pass
+
+    def on(self):
+        pass
+
+    def off(self):
+        pass
+
+
+try:
+    import gpiozero
+    output = gpiozero.LED(22)
+    if CONTACT_PIN > 0:
+        door_contact = gpiozero.Button(
+            CONTACT_PIN, pull_up=True, bounce_time=0.1
+        )
+        logging.debug('Reading door contact on pin %s', CONTACT_PIN)
+    else:
+        door_contact = DummyLED(CONTACT_PIN)
+except (ImportError, gpiozero.exc.BadPinFactory):
+    print("gpiozero error! Using stub.", file=sys.stderr)
+    output = DummyLED(22)
+    door_contact = DummyLED(CONTACT_PIN)
+
+output.off()
 
 FOB_CACHE_PATH = os.path.expanduser("~/.cache/rfidclient/authorized-fob-cache.json")
 os.makedirs(os.path.dirname(FOB_CACHE_PATH), exist_ok=True)
+
+door_state: DoorState = DoorState()
+shm: SharedMemory = SharedMemory(
+    name='doorstateshm', create=True, size=DoorState.STRUCT_SIZE
+)
 
 headers = {"Authorization": f"Bearer {GLUE_TOKEN}"}
 
@@ -83,6 +106,7 @@ def scan_worker() -> NoReturn:
                 auth_res = get_auth_res(fob)
                 auth_res.raise_for_status()
                 if auth_res.json().get("authorized_fobs", None) is None:
+                    logging.critical("Server doesn't know authorized fobs!")
                     raise ValueError("Server doesn't know authorized fobs!")
                 new_authorized_fobs = frozenset(auth_res.json()["authorized_fobs"])
                 if authorized_fobs != new_authorized_fobs:
@@ -93,17 +117,53 @@ def scan_worker() -> NoReturn:
                 new_authorized_fobs = authorized_fobs
             if fob in new_authorized_fobs:
                 logging.info("Unlocking for fob %s", fob)
+                door_state.set_scan_authorized(shm)
                 output.on()
                 time.sleep(DOOR_OPEN_SECONDS)
+                logging.debug('Relocking door')
                 output.off()
+                logging.debug('Door relocked')
             else:
                 logging.info("Fob %s is unauthorized!", fob)
+                door_state.set_scan_unauthorized(shm)
             authorized_fobs = new_authorized_fobs
         except Exception as e:
             logging.exception("")
 
 
+def door_opened() -> NoReturn:
+    logging.info("Door contact / latch sensor opened")
+    door_state.set_door_open(shm)
+    if output.value and CONTACT_TIMEOUT_MS:
+        time.sleep(CONTACT_SLEEP_TIME)
+        logging.debug('Relocking door (latch sensor')
+        output.off()
+        logging.debug('Door relocked (latch sensor)')
+
+
+def door_closed() -> NoReturn:
+    door_state.set_door_closed(shm)
+    logging.info("Door contact / latch sensor closed")
+
+
+def door_contact_handler() -> NoReturn:
+    logging.debug(
+        "Starting door_contact_handler thread; door_contact value is %s",
+        door_contact.value
+    )
+    door_contact.when_pressed = door_closed
+    door_contact.when_released = door_opened
+    pause()
+
+
 threading.Thread(target=scan_worker, daemon=True).start()
+
+if CONTACT_PIN > 0:
+    if door_contact.is_pressed:
+        door_state.set_door_closed(shm)
+    else:
+        door_state.set_door_open(shm)
+    threading.Thread(target=door_contact_handler, daemon=True).start()
 
 
 def main():
