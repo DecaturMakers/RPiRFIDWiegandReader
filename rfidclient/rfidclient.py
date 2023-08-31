@@ -32,6 +32,7 @@ load_dotenv(dotenv_path="/etc/default/rfidclient")
 GLUE_ENDPOINT: str = os.getenv("GLUE_ENDPOINT")
 GLUE_TOKEN: str = os.getenv("GLUE_TOKEN")
 ZONE: str = os.getenv("ZONE")
+OUTPUT_PIN: int = int(os.getenv("OUTPUT_PIN", "22"))
 CONTACT_PIN: int = int(os.getenv("CONTACT_PIN", "0"))
 CONTACT_TIMEOUT_MS: int = int(os.getenv("CONTACT_TIMEOUT_MS", "0"))
 CONTACT_SLEEP_TIME = CONTACT_TIMEOUT_MS / 1000.0
@@ -51,17 +52,18 @@ class DummyLED:
 
 try:
     import gpiozero
-    output = gpiozero.LED(22)
+    output = gpiozero.LED(OUTPUT_PIN)
+    logging.info('Controlling strike output on pin %s', OUTPUT_PIN)
     if CONTACT_PIN > 0:
         door_contact = gpiozero.Button(
             CONTACT_PIN, pull_up=True, bounce_time=0.1
         )
-        logging.debug('Reading door contact on pin %s', CONTACT_PIN)
+        logging.info('Reading door contact on pin %s', CONTACT_PIN)
     else:
         door_contact = DummyLED(CONTACT_PIN)
 except (ImportError, gpiozero.exc.BadPinFactory):
     print("gpiozero error! Using stub.", file=sys.stderr)
-    output = DummyLED(22)
+    output = DummyLED(OUTPUT_PIN)
     door_contact = DummyLED(CONTACT_PIN)
 
 output.off()
@@ -147,7 +149,7 @@ def door_closed() -> NoReturn:
 
 
 def door_contact_handler() -> NoReturn:
-    logging.debug(
+    logging.info(
         "Starting door_contact_handler thread; door_contact value is %s",
         door_contact.value
     )
