@@ -23,9 +23,9 @@ The 12VDC output from the PoE splitter goes to the top right screw terminals on 
 
 [![Photo of custom circuit board](images/v2_board-sm.jpg)](images/v2_board.jpg)
 
-[![Custom circuit board pinout](images/v2_board_pinout-sm.jpg)](images/v2_board_pinout-sm.jpg)
+[![Custom circuit board pinout](images/v2_board_pinout-sm.jpg)](images/v2_board_pinout.jpg)
 
-[![Custom circuit board schematic](images/v2_schematic-sm.jpg)](images/v2_schematic-sm.jpg)
+[![Custom circuit board schematic](images/v2_schematic-sm.jpg)](images/v2_schematic.jpg)
 
 These fobs are read by an ERK871 RFID reader, which sends both serial and Wiegand style data. We use 26 bit Wiegand fobs as of May, 2021. When a fob is passed near the reader, wiegand_rpi interprets the 26 bit fob data and sends the digital "full code" of the fob, a 10-digit number with three leading zeroes, to stdout.
 
