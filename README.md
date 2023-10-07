@@ -15,7 +15,7 @@ Each door uses drastically different hardware aside from the RFID readers, but t
 
 The code for the back-end "glue" server is at https://github.com/DecaturMakers/glue/ (currently a private repo).
 
-## `wiegand_rpi`` binary
+## `wiegand_rpi` binary
 
 When a fob is passed near the reader, wiegand_rpi interprets the 26 bit fob data and sends the digital "full code" of the fob, a 10-digit number with three leading zeroes, to stdout.
 
