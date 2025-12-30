@@ -6,6 +6,7 @@ import io
 import json
 import logging
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -97,6 +98,21 @@ def get_auth_res(fob):
     )
 
 
+def unlock_door(reason: str = "fob"):
+    """Unlock the door by energizing the strike/latch output.
+
+    Args:
+        reason: The reason for unlocking (e.g., "fob", "signal")
+    """
+    logging.info("Unlocking door (reason: %s)", reason)
+    door_state.set_scan_authorized(shm)
+    output.on()
+    time.sleep(DOOR_OPEN_SECONDS)
+    logging.debug('Relocking door')
+    output.off()
+    logging.debug('Door relocked')
+
+
 def scan_worker() -> NoReturn:
     global authorized_fobs
     while True:
@@ -119,12 +135,7 @@ def scan_worker() -> NoReturn:
                 new_authorized_fobs = authorized_fobs
             if fob in new_authorized_fobs:
                 logging.info("Unlocking for fob %s", fob)
-                door_state.set_scan_authorized(shm)
-                output.on()
-                time.sleep(DOOR_OPEN_SECONDS)
-                logging.debug('Relocking door')
-                output.off()
-                logging.debug('Door relocked')
+                unlock_door("fob")
             else:
                 logging.info("Fob %s is unauthorized!", fob)
                 door_state.set_scan_unauthorized(shm)
@@ -158,6 +169,12 @@ def door_contact_handler() -> NoReturn:
     pause()
 
 
+def signal_unlock_handler(signum, frame):
+    """Signal handler to trigger door unlock via SIGUSR1."""
+    logging.info("Received unlock signal (SIGUSR1)")
+    unlock_door("signal")
+
+
 threading.Thread(target=scan_worker, daemon=True).start()
 
 if CONTACT_PIN > 0:
@@ -170,6 +187,10 @@ if CONTACT_PIN > 0:
 
 def main():
     global scanned_fob
+
+    # Register signal handler for remote unlock trigger
+    signal.signal(signal.SIGUSR1, signal_unlock_handler)
+    logging.info("Registered SIGUSR1 handler for remote unlock")
 
     bin_name = "wiegand_rpi"
     if platform.machine() == "aarch64":

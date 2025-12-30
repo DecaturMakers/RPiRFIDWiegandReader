@@ -11,7 +11,9 @@ Each door uses drastically different hardware aside from the RFID readers, but t
 
 ## `rfidclient` Daemon
 
-`rfidclient` is a daemon written in Python that will start on boot and runs `wiegand_rpi`, waiting for this 10-digit number. It makes an HTTPS request to our "glue" server to check whether the fob number is valid, and if it is, sends 3V over GPIO pin 22 to the control input on the custom circuit board described above -- this closes the relay sending 24V to the door motor. The signal stays on for 5 sec.
+`rfidclient` is a daemon written in Python that will start on boot and runs `wiegand_rpi`, waiting for this 10-digit number. It makes an HTTPS request to our "glue" server to check whether the fob number is valid, and if it is, sends 3V over GPIO pin 22 to the control input on the custom circuit board described above -- this closes the relay sending 24V to the door motor. The signal stays on for 10 sec.
+
+The door can also be unlocked by sending SIGUSR1 to the rfidclient.py process, for integration with other systems (such as a remote emergency door opener tool).
 
 The code for the back-end "glue" server is at https://github.com/DecaturMakers/glue/ (currently a private repo).
 
