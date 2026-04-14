@@ -37,5 +37,5 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           additional_permissions: |
             actions: read
-          allowed_tools: "Bash(gcc *),Bash(make *),Bash(pip3 *),Bash(pip *),Bash(python3 *),Bash(python *),Bash(git *),Bash(gh *),Bash(apt-get *),Bash(sudo apt-get *),Bash(ls *),Bash(cat *),Bash(head *),Bash(tail *),Bash(find *),Bash(wc *),Bash(sort *),Bash(diff *)"
+          claude_args: '--allowedTools "Bash(gcc *),Bash(make *),Bash(pip3 *),Bash(pip *),Bash(python3 *),Bash(python *),Bash(git *),Bash(gh *),Bash(apt-get *),Bash(sudo apt-get *),Bash(ls *),Bash(cat *),Bash(head *),Bash(tail *),Bash(find *),Bash(wc *),Bash(sort *),Bash(diff *)"'
 
